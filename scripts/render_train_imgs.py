@@ -17,7 +17,7 @@ from bop_toolkit_lib import view_sampler
 # PARAMETERS.
 ################################################################################
 # See dataset_params.py for options.
-dataset = 'tyol'
+dataset = 'lm'
 
 # Radii of view spheres from which to render the objects.
 if dataset == 'lm':
@@ -126,7 +126,7 @@ for obj_id in obj_ids:
   ren_depth.add_object(obj_id, dp_model['model_tpath'].format(obj_id=obj_id))
 
 # Render training images for all object models.
-for obj_id in obj_ids:
+for obj_id in obj_ids[:2]: # for debugging
 
   # Prepare output folders.
   misc.ensure_dir(os.path.dirname(out_rgb_tpath.format(
@@ -162,7 +162,7 @@ for obj_id in obj_ids:
     # view_sampler.save_vis(out_views_vis_path, views, views_level)
 
     # Render the object model from all views.
-    for view_id, view in enumerate(views):
+    for view_id, view in enumerate(views[:30]): # for debugging
       if view_id % 10 == 0:
         misc.log('Rendering - obj: {}, radius: {}, view: {}/{}'.format(
           obj_id, radius, view_id, len(views)))

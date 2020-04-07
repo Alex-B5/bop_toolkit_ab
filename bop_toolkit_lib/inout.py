@@ -172,11 +172,11 @@ def save_scene_camera(path, scene_camera):
   for im_id in sorted(scene_camera.keys()):
     im_camera = scene_camera[im_id]
     if 'cam_K' in im_camera.keys():
-      im_camera['cam_K'] = im_camera['cam_K'].flatten().tolist()
+      im_camera['cam_K'] = np.array(im_camera['cam_K']).flatten().tolist()
     if 'cam_R_w2c' in im_camera.keys():
-      im_camera['cam_R_w2c'] = im_camera['cam_R_w2c'].flatten().tolist()
+      im_camera['cam_R_w2c'] = np.array(im_camera['cam_R_w2c']).flatten().tolist()
     if 'cam_t_w2c' in im_camera.keys():
-      im_camera['cam_t_w2c'] = im_camera['cam_t_w2c'].flatten().tolist()
+      im_camera['cam_t_w2c'] = np.array(im_camera['cam_t_w2c']).flatten().tolist()
   save_json(path, scene_camera)
 
 
@@ -211,9 +211,9 @@ def save_scene_gt(path, scene_gt):
     im_gts = scene_gt[im_id]
     for gt in im_gts:
       if 'cam_R_m2c' in gt.keys():
-        gt['cam_R_m2c'] = gt['cam_R_m2c'].flatten().tolist()
+        gt['cam_R_m2c'] = np.array(gt['cam_R_m2c']).flatten().tolist()
       if 'cam_t_m2c' in gt.keys():
-        gt['cam_t_m2c'] = gt['cam_t_m2c'].flatten().tolist()
+        gt['cam_t_m2c'] = np.array(gt['cam_t_m2c']).flatten().tolist()
       if 'obj_bb' in gt.keys():
         gt['obj_bb'] = [int(x) for x in gt['obj_bb']]
   save_json(path, scene_gt)
