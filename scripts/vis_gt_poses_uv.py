@@ -72,7 +72,7 @@ p = {
   'vis_depth_diff_tpath': os.path.join(
     '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}', '{im_id:06d}_depth_diff.jpg'),
   'vis_uv_tpath': os.path.join(
-    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}_uv', '{im_id:06d}_{gt_id:02}_{obj_id:02}.jpg'),
+    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}_uv', '{im_id:06d}_{gt_id:02}_{obj_id:02}.png'),
 }
 ################################################################################
 
