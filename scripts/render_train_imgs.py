@@ -53,7 +53,7 @@ min_n_views = 1000
 
 # Rendering parameters.
 ambient_weight = 0.5  # Weight of ambient light [0, 1]
-shading = 'phong'  # 'flat', 'phong'
+shading = 'no_light'  # 'flat', 'phong', 'no_light'
 
 # Type of the renderer. Options: 'cpp', 'python'.
 renderer_type = 'python'

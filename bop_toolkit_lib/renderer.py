@@ -85,7 +85,7 @@ def create_renderer(width, height, renderer_type='cpp', mode='rgb+depth',
   :param height: Height of the rendered image.
   :param renderer_type: Type of renderer (options: 'cpp', 'python').
   :param mode: Rendering mode ('rgb+depth', 'rgb', 'depth').
-  :param shading: Type of shading ('flat', 'phong').
+  :param shading: Type of shading ('flat', 'phong', 'no_light').
   :param bg_color: Color of the background (R, G, B, A).
   :return: Instance of a renderer of the specified type.
   """
