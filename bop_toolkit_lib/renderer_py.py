@@ -103,6 +103,33 @@ void main() {
     }
 }
 """
+_rgb_fragment_no_light_code = """
+uniform float u_light_ambient_w;
+uniform sampler2D u_texture;
+uniform int u_use_texture;
+
+varying vec3 v_color;
+varying vec2 v_texcoord;
+varying vec3 v_eye_pos;
+varying vec3 v_L;
+
+void main() {
+    // Face normal in eye coords.
+    vec3 f_normal = normalize(cross(dFdx(v_eye_pos), dFdy(v_eye_pos)));
+
+    float light_diffuse_w = max(dot(normalize(v_L), normalize(f_normal)), 0.0);
+    float light_w = u_light_ambient_w + light_diffuse_w;
+    if(light_w > 1.0) light_w = 1.0;
+    if(light_w < 1.0) light_w = 1.0; //line added. light is now always 1.0. Could have handled smarter
+
+    if(bool(u_use_texture)) {
+        gl_FragColor = vec4(light_w * texture2D(u_texture, v_texcoord));
+    }
+    else {
+        gl_FragColor = vec4(light_w * v_color, 1.0);
+    }
+}
+"""
 
 # Depth vertex shader.
 # Ref: https://github.com/julienr/vertex_visibility/blob/master/depth.py
@@ -236,7 +263,7 @@ class RendererPython(renderer.Renderer):
     :param width: Width of the rendered image.
     :param height: Height of the rendered image.
     :param mode: Rendering mode ('rgb+depth', 'rgb', 'depth').
-    :param shading: Type of shading ('flat', 'phong').
+    :param shading: Type of shading ('flat', 'phong', 'no_light').
     :param bg_color: Color of the background (R, G, B, A).
     """
     super(RendererPython, self).__init__(width, height)
@@ -376,6 +403,14 @@ class RendererPython(renderer.Renderer):
         ]
         vertices = np.array(list(zip(model['pts'], model['normals'],
                                      colors, texture_uv)), vertices_type)
+      elif self.shading == 'no_light':
+        vertices_type = [
+          ('a_position', np.float32, 3),
+          ('a_color', np.float32, colors.shape[1]),
+          ('a_texcoord', np.float32, 2)
+        ]
+        vertices = np.array(list(zip(model['pts'], colors, texture_uv)),
+                            vertices_type)
       else:
         raise ValueError('Unknown shading type.')
 
@@ -389,6 +424,8 @@ class RendererPython(renderer.Renderer):
       rgb_fragment_code = _rgb_fragment_flat_code
     elif self.shading == 'phong':
       rgb_fragment_code = _rgb_fragment_phong_code
+    elif self.shading == 'no_light':
+      rgb_fragment_code = _rgb_fragment_no_light_code
     else:
       raise ValueError('Unknown shading type.')
 

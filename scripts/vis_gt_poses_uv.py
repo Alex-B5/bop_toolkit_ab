@@ -1,7 +1,8 @@
 # Author: Tomas Hodan (hodantom@cmp.felk.cvut.cz)
 # Center for Machine Perception, Czech Technical University in Prague
 
-"""Visualizes object models in the ground-truth poses."""
+"""Visualizes object models in the ground-truth poses.
+   Customized by AB: visualizes the UV-2D-3D-correspondece, black background"""
 
 import os
 import numpy as np
@@ -51,7 +52,10 @@ p = {
   'vis_depth_diff': False,
   
   # Whether to use the original model color.
-  'vis_orig_color': False,
+  'vis_orig_color': True,
+
+  # Indicates whether to render UV images.
+  'vis_uv': True,
 
   # Type of the renderer (used for the VSD pose error function).
   'renderer_type': 'python',  # Options: 'cpp', 'python'.
@@ -66,8 +70,9 @@ p = {
   'vis_rgb_tpath': os.path.join(
     '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}', '{im_id:06d}.jpg'),
   'vis_depth_diff_tpath': os.path.join(
-    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}',
-    '{im_id:06d}_depth_diff.jpg'),
+    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}', '{im_id:06d}_depth_diff.jpg'),
+  'vis_uv_tpath': os.path.join(
+    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}_uv', '{im_id:06d}_{gt_id:02}_{obj_id:02}.jpg'),
 }
 ################################################################################
 
@@ -112,7 +117,7 @@ renderer_mode = '+'.join(renderer_modalities)
 # Create a renderer.
 width, height = dp_split['im_size']
 ren = renderer.create_renderer(
-  width, height, p['renderer_type'], mode=renderer_mode, shading='flat')
+  width, height, p['renderer_type'], mode=renderer_mode, shading='no_light')
 
 # Load object models.
 models = {}
@@ -124,7 +129,7 @@ for obj_id in dp_model['obj_ids']:
     model_color = tuple(colors[(obj_id - 1) % len(colors)])
   ren.add_object(obj_id, model_path, surf_color=model_color)
 
-for scene_id in list(scene_ids_curr)[:30]: # list and [] for debugging
+for scene_id in list(scene_ids_curr)[:2]: # for debugging listed and []
 
   # Load scene info and ground-truth poses.
   scene_camera = inout.load_scene_camera(
@@ -141,7 +146,7 @@ for scene_id in list(scene_ids_curr)[:30]: # list and [] for debugging
     im_ids = set(im_ids).intersection(p['im_ids'])
 
   # Render the object models in the ground-truth poses in the selected images.
-  for im_counter, im_id in list(enumerate(im_ids))[:30]: # list and [] for debugging
+  for im_counter, im_id in list(enumerate(im_ids))[:30]: # for debugging listed and []
     if im_counter % 10 == 0:
       misc.log(
         'Visualizing GT poses - dataset: {}, scene: {}, im: {}/{}'.format(
@@ -171,19 +176,19 @@ for scene_id in list(scene_ids_curr)[:30]: # list and [] for debugging
     rgb = None
     if p['vis_rgb']:
       if 'rgb' in dp_split['im_modalities']:
-        rgb = inout.load_im(dp_split['rgb_tpath'].format(
-          scene_id=scene_id, im_id=im_id))[:, :, :3]
+        rgb = np.zeros_like(inout.load_im(dp_split['rgb_tpath'].format(
+          scene_id=scene_id, im_id=im_id))[:, :, :3])
       elif 'gray' in dp_split['im_modalities']:
-        gray = inout.load_im(dp_split['gray_tpath'].format(
-          scene_id=scene_id, im_id=im_id))
+        gray = np.zeros_like(inout.load_im(dp_split['gray_tpath'].format(
+          scene_id=scene_id, im_id=im_id)))
         rgb = np.dstack([gray, gray, gray])
       else:
         raise ValueError('RGB nor gray images are available.')
 
     depth = None
     if p['vis_depth_diff'] or (p['vis_rgb'] and p['vis_rgb_resolve_visib']):
-      depth = inout.load_depth(dp_split['depth_tpath'].format(
-        scene_id=scene_id, im_id=im_id))
+      depth = np.zeros_like(inout.load_depth(dp_split['depth_tpath'].format(
+        scene_id=scene_id, im_id=im_id)))
       depth *= scene_camera[im_id]['depth_scale']  # Convert to [mm].
 
     # Path to the output RGB visualization.
@@ -199,11 +204,21 @@ for scene_id in list(scene_ids_curr)[:30]: # list and [] for debugging
       vis_depth_diff_path = p['vis_depth_diff_tpath'].format(
         vis_path=p['vis_path'], dataset=p['dataset'], split=p['dataset_split'],
         scene_id=scene_id, im_id=im_id)
+    
+    # Path-list to the output UV visualization. # +'{gt_id:02}', '{obj_id}.jpg'
+    vis_uv_path = None
+    if p['vis_uv']:
+      vis_uv_path = []
+      for gt_id in gt_ids_curr:
+        gt = scene_gt[im_id][gt_id]
+        vis_uv_path.append(p['vis_uv_tpath'].format(
+          vis_path=p['vis_path'], dataset=p['dataset'], split=p['dataset_split'],
+          scene_id=scene_id, im_id=im_id, gt_id=gt_id, obj_id=gt['obj_id']))
 
     # Visualization.
-    visualization.vis_object_poses(
+    visualization.vis_object_poses_uv(
       poses=gt_poses, K=K, renderer=ren, rgb=rgb, depth=depth,
       vis_rgb_path=vis_rgb_path, vis_depth_diff_path=vis_depth_diff_path,
-      vis_rgb_resolve_visib=p['vis_rgb_resolve_visib'])
+      vis_rgb_resolve_visib=p['vis_rgb_resolve_visib'], vis_uv_path=vis_uv_path)
 
 misc.log('Done.')
