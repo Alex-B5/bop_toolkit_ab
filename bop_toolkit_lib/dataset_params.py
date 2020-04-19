@@ -118,7 +118,7 @@ def get_model_params(datasets_path, dataset_name, model_type=None):
     'model_tpath': join(models_path, 'obj_{obj_id:06d}.ply'),
 
     # Path template to an object model file in uv colors.
-    'model_uv_tpath': join(models_path_uv, 'obj_{obj_id:06d}.ply'),
+    'model_uv_tpath': join(models_uv_path, 'obj_{obj_id:06d}.ply'),
 
     # Path to a file with meta information about the object models.
     'models_info_path': join(models_path, 'models_info.json')

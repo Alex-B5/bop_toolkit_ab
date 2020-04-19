@@ -5,6 +5,7 @@
 
 import os
 import cv2
+import numpy as np
 
 from bop_toolkit_lib import config
 from bop_toolkit_lib import dataset_params
@@ -12,7 +13,6 @@ from bop_toolkit_lib import inout
 from bop_toolkit_lib import misc
 from bop_toolkit_lib import renderer
 from bop_toolkit_lib import view_sampler
-
 
 # PARAMETERS.
 ################################################################################
@@ -49,7 +49,7 @@ obj_ids = []
 
 # Minimum required number of views on the whole view sphere. The final number of
 # views depends on the sampling method.
-min_n_views = 1000
+min_n_views = 20 # 1000 # smaller number for debugging
 
 # Rendering parameters.
 ambient_weight = 0.5  # Weight of ambient light [0, 1]
@@ -79,7 +79,7 @@ out_mask_tpath =\
 out_uv_tpath =\
   os.path.join('{out_path}', 'm_uv', '{obj_id:06d}_{im_id:06d}_uv.png')
 out_scene_camera_tpath =\
-  os.path.join('{out_path}', 'camera', '{obj_id:06d}_scene_camera.json')
+  os.path.join('{out_path}', 'scene_camera', '{obj_id:06d}_scene_camera.json')
 out_scene_gt_tpath =\
   os.path.join('{out_path}', 'scene_gt', '{obj_id:06d}_scene_gt.json')
 out_views_vis_tpath =\
@@ -87,7 +87,7 @@ out_views_vis_tpath =\
 
 # Load colors.
 colors_path = os.path.join(
-  os.path.dirname(visualization.__file__), 'colors.json')
+  os.path.dirname(inout.__file__), 'colors.json')
 colors = inout.load_json(colors_path)
 ################################################################################
 
@@ -137,14 +137,14 @@ for obj_id in obj_ids:
 # Create the UV renderer.
 ren_uv = renderer.create_renderer(
   width_rgb, height_rgb, renderer_type, mode='rgb', shading='no_light')
-ren_uv.set_light_ambient_weight(1.0)
+ren_uv.set_light_ambient_weight(1.0) # 'no_light" overwrites this
 
 # Add object models to the UV renderer.
 for obj_id in obj_ids:
-  ren_rgb.add_object(obj_id, dp_model['model_uv_tpath'].format(obj_id=obj_id))
+  ren_uv.add_object(obj_id, dp_model['model_uv_tpath'].format(obj_id=obj_id), surf_color=None)
 
 # Render training images for all object models.
-for obj_id in obj_ids[:2]: # for debugging
+for obj_id in obj_ids: # for debugging [:2]
 
   # Prepare output folders.
   misc.ensure_dir(os.path.dirname(out_rgb_tpath.format(
@@ -159,14 +159,12 @@ for obj_id in obj_ids[:2]: # for debugging
     out_path=out_path, obj_id=obj_id)))
   misc.ensure_dir(os.path.dirname(out_scene_gt_tpath.format(
     out_path=out_path, obj_id=obj_id)))
-  misc.ensure_dir(os.path.dirname(out_views_vis_tpath.format(
-    out_path=out_path, obj_id=obj_id)))
 
   # Load model.
   model_path = dp_model['model_tpath'].format(obj_id=obj_id)
   model = inout.load_ply(model_path)
   model_uv_path = dp_model['model_uv_tpath'].format(obj_id=obj_id)
-  model_uv = inout.load_ply(model_path)
+  model_uv = inout.load_ply(model_uv_path)
 
   # Load model texture.
   if 'texture_file' in model:
@@ -193,7 +191,7 @@ for obj_id in obj_ids[:2]: # for debugging
     # view_sampler.save_vis(out_views_vis_path, views, views_level)
 
     # Render the object model from all views.
-    for view_id, view in enumerate(views[:30]): # for debugging
+    for view_id, view in enumerate(views): # for debugging [:30]
       if view_id % 10 == 0:
         misc.log('Rendering - obj: {}, radius: {}, view: {}/{}'.format(
           obj_id, radius, view_id, len(views)))
@@ -201,38 +199,52 @@ for obj_id in obj_ids[:2]: # for debugging
       # Rendering.
       rgb = ren_rgb.render_object(
         obj_id, view['R'], view['t'], fx_rgb, fy_rgb, cx_rgb, cy_rgb)['rgb']
-      depth = ren_depth.render_object(
-        obj_id, view['R'], view['t'], fx_d, fy_d, cx_d, cy_d)['depth']
+      # depth = ren_depth.render_object(
+      #   obj_id, view['R'], view['t'], fx_d, fy_d, cx_d, cy_d)['depth']
       uv = ren_uv.render_object(
-        obj_id, view['R'], view['t'], fx_d, fy_d, cx_d, cy_d)['rgb']
+        obj_id, view['R'], view['t'], fx_rgb, fy_rgb, cx_rgb, cy_rgb)['rgb']
 
       # Convert depth so it is in the same units as other images in the dataset.
-      depth /= float(dp_camera['depth_scale'])
+      # depth /= float(dp_camera['depth_scale'])
 
       # The OpenCV function was used for rendering of the training images
       # provided for the SIXD Challenge 2017.
       rgb = cv2.resize(rgb, dp_camera['im_size'], interpolation=cv2.INTER_AREA)
+      uv = cv2.resize(uv, dp_camera['im_size'], interpolation=cv2.INTER_AREA)
       # rgb = scipy.misc.imresize(rgb, par['cam']['im_size'][::-1], 'bicubic')
 
       # create mask in object color
       obj_mask = np.sum(rgb > 0, axis=2) >= 1
       obj_mask = np.stack([obj_mask]*3, axis=2)
-      model_color = tuple(colors[(obj_id - 1) % len(colors)])
-      obj_mask = (obj_mask * model_color  *255).astype('uint8')
+      # mask_color = tuple(colors[(obj_id - 1) % len(colors)])
+      obj_mask = (obj_mask * obj_id).astype('uint8')
+
+      # find bbox top left and bottom right and cut images
+      rs, cs = obj_mask.nonzero() # row and column coordinates
+      if len(ys):
+        bb_min = [rs.min(), cs.min()]
+        bb_max = [rs.max(), cs.max()]
+      rgb      =      rgb[bb_min[0]:bb_max[0]+1, bb_min[1]:bb_max[1]+1, :]
+      uv       =       uv[bb_min[0]:bb_max[0]+1, bb_min[1]:bb_max[1]+1, :]
+      obj_mask = obj_mask[bb_min[0]:bb_max[0]+1, bb_min[1]:bb_max[1]+1, :]
+      # depth tbd...
 
       # Save the rendered images.
       out_rgb_path = out_rgb_tpath.format(
         out_path=out_path, obj_id=obj_id, im_id=im_id)
       inout.save_im(out_rgb_path, rgb)
-      out_depth_path = out_depth_tpath.format(
-        out_path=out_path, obj_id=obj_id, im_id=im_id)
-      inout.save_depth(out_depth_path, depth)
+
+      # out_depth_path = out_depth_tpath.format(
+      #   out_path=out_path, obj_id=obj_id, im_id=im_id)
+      # inout.save_depth(out_depth_path, depth)
+
       out_uv_path = out_uv_tpath.format(
         out_path=out_path, obj_id=obj_id, im_id=im_id)
-      inout.save_depth(out_uv_path, uv)
+      inout.save_im(out_uv_path, uv)
+
       out_mask_path = out_mask_tpath.format(
         out_path=out_path, obj_id=obj_id, im_id=im_id)
-      inout.save_depth(out_uv_path, obj_mask)
+      inout.save_im(out_mask_path, obj_mask)
 
       # Get 2D bounding box of the object model at the ground truth pose.
       # ys, xs = np.nonzero(depth > 0)
