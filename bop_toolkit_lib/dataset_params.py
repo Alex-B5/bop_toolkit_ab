@@ -101,9 +101,11 @@ def get_model_params(datasets_path, dataset_name, model_type=None):
   models_folder_name = 'models'
   if model_type is not None:
     models_folder_name += '_' + model_type
+  models_uv_folder_name = 'models_uv'
 
   # Path to the folder with object models.
   models_path = join(datasets_path, dataset_name, models_folder_name)
+  models_uv_path = join(datasets_path, dataset_name, models_uv_folder_name)
 
   p = {
     # ID's of all objects included in the dataset.
@@ -114,6 +116,9 @@ def get_model_params(datasets_path, dataset_name, model_type=None):
 
     # Path template to an object model file.
     'model_tpath': join(models_path, 'obj_{obj_id:06d}.ply'),
+
+    # Path template to an object model file in uv colors.
+    'model_uv_tpath': join(models_path_uv, 'obj_{obj_id:06d}.ply'),
 
     # Path to a file with meta information about the object models.
     'models_info_path': join(models_path, 'models_info.json')

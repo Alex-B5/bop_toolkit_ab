@@ -176,19 +176,19 @@ for scene_id in list(scene_ids_curr)[:2]: # for debugging listed and []
     rgb = None
     if p['vis_rgb']:
       if 'rgb' in dp_split['im_modalities']:
-        rgb = np.zeros_like(inout.load_im(dp_split['rgb_tpath'].format(
-          scene_id=scene_id, im_id=im_id))[:, :, :3])
+        rgb = inout.load_im(dp_split['rgb_tpath'].format(
+          scene_id=scene_id, im_id=im_id))[:, :, :3]
       elif 'gray' in dp_split['im_modalities']:
-        gray = np.zeros_like(inout.load_im(dp_split['gray_tpath'].format(
-          scene_id=scene_id, im_id=im_id)))
+        gray = inout.load_im(dp_split['gray_tpath'].format(
+          scene_id=scene_id, im_id=im_id))
         rgb = np.dstack([gray, gray, gray])
       else:
         raise ValueError('RGB nor gray images are available.')
 
     depth = None
     if p['vis_depth_diff'] or (p['vis_rgb'] and p['vis_rgb_resolve_visib']):
-      depth = np.zeros_like(inout.load_depth(dp_split['depth_tpath'].format(
-        scene_id=scene_id, im_id=im_id)))
+      depth = inout.load_depth(dp_split['depth_tpath'].format(
+        scene_id=scene_id, im_id=im_id))
       depth *= scene_camera[im_id]['depth_scale']  # Convert to [mm].
 
     # Path to the output RGB visualization.
