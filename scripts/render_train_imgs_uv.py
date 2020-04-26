@@ -6,6 +6,7 @@
 import os
 import cv2
 import numpy as np
+import cv2 # for eroding the masks
 
 from bop_toolkit_lib import config
 from bop_toolkit_lib import dataset_params
@@ -49,7 +50,7 @@ obj_ids = []
 
 # Minimum required number of views on the whole view sphere. The final number of
 # views depends on the sampling method.
-min_n_views = 20 # 1000 # smaller number for debugging
+min_n_views = 100 # 1000 # smaller number for debugging
 
 # Rendering parameters.
 ambient_weight = 0.5  # Weight of ambient light [0, 1]
@@ -210,18 +211,27 @@ for obj_id in obj_ids: # for debugging [:2]
       # The OpenCV function was used for rendering of the training images
       # provided for the SIXD Challenge 2017.
       rgb = cv2.resize(rgb, dp_camera['im_size'], interpolation=cv2.INTER_AREA)
-      uv = cv2.resize(uv, dp_camera['im_size'], interpolation=cv2.INTER_AREA)
+      uv  = cv2.resize(uv , dp_camera['im_size'], interpolation=cv2.INTER_AREA)
       # rgb = scipy.misc.imresize(rgb, par['cam']['im_size'][::-1], 'bicubic')
 
       # create mask in object color
-      obj_mask = np.sum(rgb > 0, axis=2) >= 1
-      obj_mask = np.stack([obj_mask]*3, axis=2)
+      mask = np.sum(rgb > 0, axis=2) >= 1
+      mask = np.stack([obj_mask]*3, axis=2)
+      # erode mask to remove 'black' border
+      kernel = np.ones((3,3), np.uint8)
+      mask = cv2.erode(mask.astype(np.uint8), kernel, cv2.BORDER_CONSTANT, borderValue=0).astype(np.bool_)
+      
+      # apply eroded mask to renderings
+      rgb = rgb * mask
+      uv  = uv  * mask
+
+      # create mask with obj id 
+      obj_mask = (mask * obj_id).astype('uint8')
       # mask_color = tuple(colors[(obj_id - 1) % len(colors)])
-      obj_mask = (obj_mask * obj_id).astype('uint8')
 
       # find bbox top left and bottom right and cut images
-      rs, cs = obj_mask.nonzero() # row and column coordinates
-      if len(ys):
+      rs, cs = obj_mask[:,:,0].nonzero() # row and column coordinates
+      if len(rs):
         bb_min = [rs.min(), cs.min()]
         bb_max = [rs.max(), cs.max()]
       rgb      =      rgb[bb_min[0]:bb_max[0]+1, bb_min[1]:bb_max[1]+1, :]
