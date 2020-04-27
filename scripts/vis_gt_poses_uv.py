@@ -68,12 +68,15 @@ p = {
   
   # Path templates for output images.
   'vis_rgb_tpath': os.path.join(
-    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}', '{im_id:06d}.jpg'),
+    '{vis_path}_{dataset}', 'rgb', '{scene_id:06d}_{im_id:06d}.png'),
   'vis_depth_diff_tpath': os.path.join(
-    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}', '{im_id:06d}_depth_diff.jpg'),
+    '{vis_path}_{dataset}', 'depth', '{scene_id:06d}_{im_id:06d}_depth.png'),
   'vis_uv_tpath': os.path.join(
-    '{vis_path}', '{dataset}', '{split}', '{scene_id:06d}_uv', '{im_id:06d}_{gt_id:02}_{obj_id:02}.png'),
+    '{vis_path}_{dataset}', 'm_uv', '{scene_id:06d}_{im_id:06d}_uv.png'),
+  'vis_mask_tpath': os.path.join(
+    '{vis_path}_{dataset}', 'm_uv', '{scene_id:06d}_{im_id:06d}_mask.png')
 }
+
 ################################################################################
 
 
@@ -123,7 +126,7 @@ ren = renderer.create_renderer(
 models = {}
 for obj_id in dp_model['obj_ids']:
   misc.log('Loading 3D model of object {}...'.format(obj_id))
-  model_path = dp_model['model_tpath'].format(obj_id=obj_id)
+  model_path = dp_model['model_uv_tpath'].format(obj_id=obj_id)
   model_color = None
   if not p['vis_orig_color']:
     model_color = tuple(colors[(obj_id - 1) % len(colors)])
@@ -191,34 +194,33 @@ for scene_id in list(scene_ids_curr)[:2]: # for debugging listed and []
         scene_id=scene_id, im_id=im_id))
       depth *= scene_camera[im_id]['depth_scale']  # Convert to [mm].
 
-    # Path to the output RGB visualization.
+    # Path to the output RGB visualization. # no split=p['dataset_split']
     vis_rgb_path = None
     if p['vis_rgb']:
       vis_rgb_path = p['vis_rgb_tpath'].format(
-        vis_path=p['vis_path'], dataset=p['dataset'], split=p['dataset_split'],
-        scene_id=scene_id, im_id=im_id)
+        vis_path=p['vis_path'], dataset=p['dataset'], scene_id=scene_id, im_id=im_id)
 
-    # Path to the output depth difference visualization.
+    # Path to the output depth difference visualization. # no split=p['dataset_split']
     vis_depth_diff_path = None
     if p['vis_depth_diff']:
       vis_depth_diff_path = p['vis_depth_diff_tpath'].format(
-        vis_path=p['vis_path'], dataset=p['dataset'], split=p['dataset_split'],
-        scene_id=scene_id, im_id=im_id)
+        vis_path=p['vis_path'], dataset=p['dataset'], scene_id=scene_id, im_id=im_id)
     
-    # Path-list to the output UV visualization. # +'{gt_id:02}', '{obj_id}.jpg'
+    # Path-list to the output UV visualization and their masks.
     vis_uv_path = None
     if p['vis_uv']:
       vis_uv_path = []
-      for gt_id in gt_ids_curr:
-        gt = scene_gt[im_id][gt_id]
-        vis_uv_path.append(p['vis_uv_tpath'].format(
-          vis_path=p['vis_path'], dataset=p['dataset'], split=p['dataset_split'],
-          scene_id=scene_id, im_id=im_id, gt_id=gt_id, obj_id=gt['obj_id']))
+      vis_mask_path = []
+      vis_uv_path = p['vis_uv_tpath'].format(
+        vis_path=p['vis_path'], dataset=p['dataset'], scene_id=scene_id, im_id=im_id)
+      vis_mask_path = p['vis_mask_tpath'].format(
+        vis_path=p['vis_path'], dataset=p['dataset'], scene_id=scene_id, im_id=im_id)
 
     # Visualization.
     visualization.vis_object_poses_uv(
       poses=gt_poses, K=K, renderer=ren, rgb=rgb, depth=depth,
       vis_rgb_path=vis_rgb_path, vis_depth_diff_path=vis_depth_diff_path,
-      vis_rgb_resolve_visib=p['vis_rgb_resolve_visib'], vis_uv_path=vis_uv_path)
+      vis_rgb_resolve_visib=p['vis_rgb_resolve_visib'], vis_uv_path=vis_uv_path,
+      vis_mask_path=vis_mask_path)
 
 misc.log('Done.')
