@@ -11,6 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 from bop_toolkit_lib import inout
 from bop_toolkit_lib import misc
 
+import cv2
+
 
 def draw_rect(im, rect, color=(1.0, 1.0, 1.0)):
   """Draws a rectangle on an image.
@@ -280,7 +282,7 @@ def plot_recall_curves(recall_dict, p):
 def vis_object_poses_uv(
       poses, K, renderer, rgb=None, depth=None, vis_rgb_path=None,
       vis_depth_diff_path=None, vis_rgb_resolve_visib=False, vis_uv_path=None,
-      vis_uv_path=None):
+      vis_mask_path=None):
   """Visualizes 3D object models in specified poses in a single image.
 
   Two visualizations are created:
@@ -356,7 +358,7 @@ def vis_object_poses_uv(
     if vis_uv:
       # create mask in object color
       m_mask_rgb = np.sum(m_rgb > 0, axis=2) >= 1
-      m_mask_rgb = np.stack([m_mask]*3, axis=2)
+      m_mask_rgb = np.stack([m_mask_rgb]*3, axis=2)
       # erode mask to remove 'black' border
       kernel = np.ones((3,3), np.uint8)
       m_mask_rgb = cv2.erode(m_mask_rgb.astype(np.uint8), kernel, cv2.BORDER_CONSTANT, borderValue=0).astype(np.bool_)
@@ -397,9 +399,11 @@ def vis_object_poses_uv(
         ren_rgb_f[ren_rgb_f > 255] = 255
         ren_rgb = ren_rgb_f.astype(np.uint8)
 
-        ren_mask = ren_rgb + m_mask_rgb
-        ren_mask[ren_rgb > 255] = 255
-        ren_mask = ren_rgb.astype(np.uint8)
+        m_mask_idx = (ren_mask==0) & (ren_mask >0)
+        m_mask_rgb = m_mask_rgb[m_mask_idx]
+        ren_mask = ren_mask + m_mask_rgb
+        ren_mask[ren_mask > 255] = 255
+        ren_mask = ren_mask.astype(np.uint8)
       # # Draw 2D bounding box and write text info.
       # obj_mask = np.sum(m_rgb > 0, axis=2)
       # ys, xs = obj_mask.nonzero()
@@ -437,7 +441,7 @@ def vis_object_poses_uv(
       ren_uv = ren_rgb.astype(np.uint8)
       inout.save_im(vis_uv_path, ren_uv)
 
-      misc.ensure_dir(os.path.dirname(vis_mak_path))
+      misc.ensure_dir(os.path.dirname(vis_mask_path))
       ren_mask = ren_mask.astype(np.uint8)
       inout.save_im(vis_mask_path, ren_mask)
 

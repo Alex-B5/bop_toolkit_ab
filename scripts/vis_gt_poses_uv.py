@@ -132,7 +132,7 @@ for obj_id in dp_model['obj_ids']:
     model_color = tuple(colors[(obj_id - 1) % len(colors)])
   ren.add_object(obj_id, model_path, surf_color=model_color)
 
-for scene_id in list(scene_ids_curr)[:2]: # for debugging listed and []
+for scene_id in list(scene_ids_curr): # for debugging listed and [:2]
 
   # Load scene info and ground-truth poses.
   scene_camera = inout.load_scene_camera(
@@ -149,7 +149,7 @@ for scene_id in list(scene_ids_curr)[:2]: # for debugging listed and []
     im_ids = set(im_ids).intersection(p['im_ids'])
 
   # Render the object models in the ground-truth poses in the selected images.
-  for im_counter, im_id in list(enumerate(im_ids))[:30]: # for debugging listed and []
+  for im_counter, im_id in list(enumerate(im_ids)): # for debugging listed and [:30]
     if im_counter % 10 == 0:
       misc.log(
         'Visualizing GT poses - dataset: {}, scene: {}, im: {}/{}'.format(

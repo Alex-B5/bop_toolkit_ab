@@ -9,4 +9,3 @@ triangle==20190115.2
 glumpy==1.1.0
 opencv-python==4.1.0.25
 Pillow>=6.2.0
-cv2==4.1.0
