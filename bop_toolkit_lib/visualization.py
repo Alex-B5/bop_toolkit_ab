@@ -360,7 +360,7 @@ def vis_object_poses_uv(
       m_mask_rgb = np.sum(m_rgb > 0, axis=2) >= 1
       m_mask_rgb = np.stack([m_mask_rgb]*3, axis=2)
       # erode mask to remove 'black' border
-      kernel = np.ones((3,3), np.uint8)
+      kernel = np.ones((5,5), np.uint8)
       m_mask_rgb = cv2.erode(m_mask_rgb.astype(np.uint8), kernel, cv2.BORDER_CONSTANT, borderValue=0).astype(np.bool_)
       
       # apply eroded mask to renderings

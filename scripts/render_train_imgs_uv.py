@@ -218,7 +218,7 @@ for obj_id in obj_ids: # for debugging [:2]
       mask = np.sum(rgb > 0, axis=2) >= 1
       mask = np.stack([mask]*3, axis=2)
       # erode mask to remove 'black' border
-      kernel = np.ones((3,3), np.uint8)
+      kernel = np.ones((5,5), np.uint8)
       mask = cv2.erode(mask.astype(np.uint8), kernel, cv2.BORDER_CONSTANT, borderValue=0).astype(np.bool_)
       
       # apply eroded mask to renderings
